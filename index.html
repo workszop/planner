@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planner Budżetu Marketingowego Q4</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            margin-top: -8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-8 h-8 text-blue-600"></i>
+                    Planner Budżetu Q4
+                </h1>
+                <p class="text-slate-500 mt-1">Zaplanuj wydatki na marketing (Październik - Grudzień)</p>
+            </div>
+            <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
+                <span class="text-sm font-medium text-slate-500">Całkowity budżet:</span>
+                <div class="relative">
+                    <input type="number" id="totalBudgetInput" class="w-32 md:w-40 font-bold text-lg text-right border-b-2 border-blue-500 focus:outline-none focus:border-blue-700 bg-transparent" value="100000">
+                    <span class="ml-1 font-bold text-slate-700">PLN</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Główna sekcja kontrolna -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Panel alokacji (Lewa kolumna) -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 text-green-600"></i>
+                        Alokacja Kanałów
+                    </h2>
+                    
+                    <div id="channelsContainer" class="space-y-6">
+                        <!-- Kanały będą generowane przez JS -->
+                    </div>
+
+                    <!-- Status budżetu -->
+                    <div id="budgetStatusBox" class="mt-6 p-4 rounded-lg flex items-center justify-between bg-green-50 border border-green-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i id="statusIcon" data-lucide="check-circle" class="text-green-600"></i>
+                            <div>
+                                <p id="statusTitle" class="font-semibold text-green-800">Budżet w normie</p>
+                                <p id="statusMessage" class="text-sm text-slate-600">Pozostało 0 zł do rozdysponowania.</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs uppercase tracking-wide text-slate-500 font-bold">Wykorzystanie</span>
+                            <div id="usagePercent" class="text-2xl font-bold text-slate-800">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wybór strategii sezonowej -->
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-purple-600"></i>
+                        Strategia Sezonowa Q4
+                    </h2>
+                    <div id="strategyButtons" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Przyciski strategii generowane przez JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Wizualny (Prawa kolumna - Wykres Kołowy) -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100 h-full flex flex-col justify-center items-center min-h-[350px]">
+                    <h3 class="text-lg font-semibold mb-2 self-start flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-5 h-5 text-slate-500"></i>
+                        Podział Wydatków
+                    </h3>
+                    <div class="w-full h-64 relative">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                    <div class="text-center text-sm text-slate-500 mt-4">
+                        Łącznie rozdysponowano: <span id="allocatedTotalText" class="font-bold text-slate-700">0 zł</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sekcja miesięczna (Dół) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+            <!-- Wykres słupkowy -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+                <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-5 h-5 text-orange-500"></i>
+                    Symulacja Miesięczna
+                </h3>
+                <div class="w-full h-72 relative">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela szczegółowa -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+                <h3 class="text-lg font-semibold mb-6">Szczegółowy Harmonogram Płatności</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Miesiąc</th>
+                                <th class="px-4 py-3 text-right">Social Media</th>
+                                <th class="px-4 py-3 text-right">Google Ads</th>
+                                <th class="px-4 py-3 text-right">Bilbordy</th>
+                                <th class="px-4 py-3 text-right rounded-r-lg">Suma</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100">
+                            <!-- Wiersze tabeli generowane przez JS -->
+                        </tbody>
+                        <tfoot class="border-t-2 border-slate-200">
+                            <tr>
+                                <td class="px-4 py-3 font-bold text-slate-900">RAZEM Q4</td>
+                                <td id="totalSocial" class="px-4 py-3 text-right font-bold text-pink-600"></td>
+                                <td id="totalGoogle" class="px-4 py-3 text-right font-bold text-blue-600"></td>
+                                <td id="totalBillboards" class="px-4 py-3 text-right font-bold text-amber-600"></td>
+                                <td id="totalAll" class="px-4 py-3 text-right font-black text-slate-900"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- DATA & STATE ---
+        let totalBudget = 100000;
+        let channels = {
+            social: { name: 'Media Społecznościowe', value: 40000, color: '#ec4899', id: 'social' },
+            google: { name: 'Google Ads', value: 35000, color: '#3b82f6', id: 'google' },
+            billboards: { name: 'Bilbordy (OOH)', value: 15000, color: '#f59e0b', id: 'billboards' },
+        };
+        let currentStrategy = 'standard';
+
+        const strategies = {
+            standard: { label: 'Standardowy Q4 (Pik w Listopadzie)', weights: [0.25, 0.45, 0.30] },
+            flat: { label: 'Równomierny (33% / 33% / 33%)', weights: [0.333, 0.333, 0.333] },
+            early: { label: 'Wczesny start (Mocny Październik)', weights: [0.40, 0.40, 0.20] },
+            late: { label: 'Last Minute (Mocny Grudzień)', weights: [0.15, 0.35, 0.50] },
+        };
+
+        // --- CHART INSTANCES ---
+        let pieChartInstance = null;
+        let barChartInstance = null;
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initUI();
+            updateAll();
+        });
+
+        // --- UI INITIALIZATION ---
+        function initUI() {
+            // Total Budget Input
+            const budgetInput = document.getElementById('totalBudgetInput');
+            budgetInput.value = totalBudget;
+            budgetInput.addEventListener('input', (e) => {
+                totalBudget = parseInt(e.target.value) || 0;
+                updateAll();
+            });
+
+            // Channel Sliders Generation
+            const container = document.getElementById('channelsContainer');
+            Object.values(channels).forEach(channel => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-50 p-4 rounded-lg border border-slate-200 hover:border-blue-200 transition-colors";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-semibold text-slate-700 flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full" style="background-color: ${channel.color}"></span>
+                            ${channel.name}
+                        </label>
+                        <span id="percent-${channel.id}" class="text-xs font-bold px-2 py-1 bg-white rounded border border-slate-200 text-slate-500">
+                            0% budżetu
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <input type="range" id="range-${channel.id}" min="0" max="${totalBudget}" step="1000" value="${channel.value}" 
+                            class="flex-grow h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        <div class="relative w-32">
+                            <input type="number" id="input-${channel.id}" value="${channel.value}" 
+                                class="w-full pl-3 pr-8 py-2 rounded border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right font-mono">
+                            <span class="absolute right-3 top-2 text-slate-400 text-sm">zł</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+
+                // Event Listeners
+                const range = div.querySelector(`#range-${channel.id}`);
+                const numberInput = div.querySelector(`#input-${channel.id}`);
+
+                range.addEventListener('input', (e) => handleChannelChange(channel.id, e.target.value));
+                numberInput.addEventListener('input', (e) => handleChannelChange(channel.id, e.target.value));
+            });
+
+            // Strategy Buttons Generation
+            const stratContainer = document.getElementById('strategyButtons');
+            Object.entries(strategies).forEach(([key, data]) => {
+                const btn = document.createElement('button');
+                btn.id = `strat-${key}`;
+                btn.className = `p-3 rounded-lg border-2 text-left transition-all border-slate-100 hover:border-slate-300 text-slate-600`;
+                btn.onclick = () => {
+                    currentStrategy = key;
+                    updateStrategyUI();
+                    updateAll();
+                };
+                btn.innerHTML = `
+                    <div class="font-semibold">${data.label}</div>
+                    <div class="text-xs mt-1 text-slate-500">
+                        Paź: ${(data.weights[0]*100).toFixed(0)}% | Lis: ${(data.weights[1]*100).toFixed(0)}% | Gru: ${(data.weights[2]*100).toFixed(0)}%
+                    </div>
+                `;
+                stratContainer.appendChild(btn);
+            });
+
+            // Init Charts
+            initCharts();
+            updateStrategyUI();
+        }
+
+        // --- LOGIC HANDLERS ---
+        function handleChannelChange(id, newValue) {
+            const val = parseInt(newValue) || 0;
+            channels[id].value = val;
+            updateAll();
+        }
+
+        function formatPLN(amount) {
+            return new Intl.NumberFormat('pl-PL', {
+                style: 'currency',
+                currency: 'PLN',
+                maximumFractionDigits: 0,
+            }).format(amount);
+        }
+
+        function updateStrategyUI() {
+            Object.keys(strategies).forEach(key => {
+                const btn = document.getElementById(`strat-${key}`);
+                if (key === currentStrategy) {
+                    btn.className = "p-3 rounded-lg border-2 text-left transition-all border-blue-500 bg-blue-50 text-blue-800 shadow-sm";
+                } else {
+                    btn.className = "p-3 rounded-lg border-2 text-left transition-all border-slate-100 hover:border-slate-300 text-slate-600";
+                }
+            });
+        }
+
+        // --- UPDATE LOOP ---
+        function updateAll() {
+            // 1. Calculations
+            const allocated = Object.values(channels).reduce((acc, curr) => acc + curr.value, 0);
+            const remaining = totalBudget - allocated;
+            const isOverBudget = remaining < 0;
+
+            // 2. Update Inputs & Ranges (sync limits)
+            Object.values(channels).forEach(ch => {
+                document.getElementById(`range-${ch.id}`).value = ch.value;
+                document.getElementById(`range-${ch.id}`).max = totalBudget * 1.5; // Allow overshooting slightly on slider
+                document.getElementById(`input-${ch.id}`).value = ch.value;
+                
+                const percent = totalBudget > 0 ? ((ch.value / totalBudget) * 100).toFixed(1) : 0;
+                document.getElementById(`percent-${ch.id}`).innerText = `${percent}% budżetu`;
+            });
+
+            // 3. Update Status Box
+            const statusBox = document.getElementById('budgetStatusBox');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMsg = document.getElementById('statusMessage');
+            const statusIcon = document.getElementById('statusIcon');
+            
+            if (isOverBudget) {
+                statusBox.className = "mt-6 p-4 rounded-lg flex items-center justify-between bg-red-50 border border-red-200";
+                statusTitle.className = "font-semibold text-red-800";
+                statusTitle.innerText = "Przekroczono budżet!";
+                statusMsg.innerText = `Jesteś ${formatPLN(Math.abs(remaining))} na minusie.`;
+                statusIcon.setAttribute('class', 'text-red-600'); 
+                // Note: lucide doesn't auto-update class via setAttribute on the svg directly easily without re-render, 
+                // but since we are just changing color via class, it should work on the parent or svg wrapper.
+                // Re-rendering icon for safety:
+                statusIcon.innerHTML = `<circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line>`;
+                statusIcon.setAttribute('stroke', 'currentColor');
+            } else {
+                statusBox.className = "mt-6 p-4 rounded-lg flex items-center justify-between bg-green-50 border border-green-200";
+                statusTitle.className = "font-semibold text-green-800";
+                statusTitle.innerText = "Budżet w normie";
+                statusMsg.innerText = `Pozostało ${formatPLN(remaining)} do rozdysponowania.`;
+                statusIcon.setAttribute('class', 'text-green-600');
+                statusIcon.innerHTML = `<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>`;
+            }
+
+            document.getElementById('usagePercent').innerText = ((allocated / totalBudget) * 100).toFixed(1) + "%";
+            document.getElementById('allocatedTotalText').innerText = formatPLN(allocated);
+
+            // 4. Monthly Data Gen
+            const months = ['Październik', 'Listopad', 'Grudzień'];
+            const weights = strategies[currentStrategy].weights;
+            const monthlyData = months.map((month, idx) => {
+                const row = { name: month, social: 0, google: 0, billboards: 0, sum: 0 };
+                Object.values(channels).forEach(ch => {
+                    const amount = Math.round(ch.value * weights[idx]);
+                    row[ch.id] = amount;
+                    row.sum += amount;
+                });
+                return row;
+            });
+
+            // 5. Update Charts
+            updateCharts(remaining, monthlyData);
+
+            // 6. Update Table
+            updateTable(monthlyData, allocated);
+        }
+
+        // --- CHARTS LOGIC ---
+        function initCharts() {
+            // Pie Chart
+            const ctxPie = document.getElementById('pieChart').getContext('2d');
+            pieChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Bar Chart
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            barChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Październik', 'Listopad', 'Grudzień'],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, grid: { borderDash: [2, 2] } }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatPLN(context.raw);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(remaining, monthlyData) {
+            // Update Pie
+            const pieData = [
+                channels.social.value,
+                channels.google.value,
+                channels.billboards.value,
+                Math.max(0, remaining)
+            ];
+            const pieColors = [
+                channels.social.color,
+                channels.google.color,
+                channels.billboards.color,
+                '#e2e8f0' // remaining color
+            ];
+            const pieLabels = [
+                channels.social.name,
+                channels.google.name,
+                channels.billboards.name,
+                'Pozostały budżet'
+            ];
+
+            pieChartInstance.data.labels = pieLabels;
+            pieChartInstance.data.datasets[0].data = pieData;
+            pieChartInstance.data.datasets[0].backgroundColor = pieColors;
+            pieChartInstance.update();
+
+            // Update Bar
+            // We reconstruct datasets
+            barChartInstance.data.datasets = [
+                {
+                    label: channels.social.name,
+                    data: monthlyData.map(d => d.social),
+                    backgroundColor: channels.social.color,
+                    borderRadius: 4
+                },
+                {
+                    label: channels.google.name,
+                    data: monthlyData.map(d => d.google),
+                    backgroundColor: channels.google.color,
+                    borderRadius: 4
+                },
+                {
+                    label: channels.billboards.name,
+                    data: monthlyData.map(d => d.billboards),
+                    backgroundColor: channels.billboards.color,
+                    borderRadius: 4
+                }
+            ];
+            barChartInstance.update();
+        }
+
+        function updateTable(monthlyData, totalAllocated) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            monthlyData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-medium text-slate-800">${row.name}</td>
+                    <td class="px-4 py-3 text-right text-slate-600">${formatPLN(row.social)}</td>
+                    <td class="px-4 py-3 text-right text-slate-600">${formatPLN(row.google)}</td>
+                    <td class="px-4 py-3 text-right text-slate-600">${formatPLN(row.billboards)}</td>
+                    <td class="px-4 py-3 text-right font-bold text-slate-900 bg-slate-50/50">${formatPLN(row.sum)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Footer Totals
+            document.getElementById('totalSocial').innerText = formatPLN(channels.social.value);
+            document.getElementById('totalGoogle').innerText = formatPLN(channels.google.value);
+            document.getElementById('totalBillboards').innerText = formatPLN(channels.billboards.value);
+            document.getElementById('totalAll').innerText = formatPLN(totalAllocated);
+        }
+
+    </script>
+</body>
+</html>
